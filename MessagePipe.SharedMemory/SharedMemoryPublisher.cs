@@ -1,10 +1,10 @@
 using System.IO.Hashing;
 using System.Threading;
 using System.Threading.Tasks;
-using SharedMemory;
 using System.Linq;
 using System;
 using System.Text;
+using MessagePipe.SharedMemory.InternalClasses.Interfaces;
 
 namespace MessagePipe.SharedMemory
 {
@@ -13,26 +13,29 @@ namespace MessagePipe.SharedMemory
     {
         private readonly MessagePipeSharedMemoryOptions messagePipeSharedMemoryOptions;
         private readonly ISharedMemorySerializer sharedMemorySerializer;
+        private ICircularBuffer circularBuffer;
 
-        public SharedMemoryPublisher(MessagePipeSharedMemoryOptions messagePipeSharedMemoryOptions, ISharedMemorySerializer sharedMemorySerializer)
+        public SharedMemoryPublisher(MessagePipeSharedMemoryOptions messagePipeSharedMemoryOptions, ISharedMemorySerializer sharedMemorySerializer,ICircularBuffer circularBuffer)
         {
             this.messagePipeSharedMemoryOptions = messagePipeSharedMemoryOptions;
             this.sharedMemorySerializer = sharedMemorySerializer;
+            this.circularBuffer = circularBuffer;
         }
 
         public async ValueTask PublishAsync(TKey key, TMessage message, CancellationToken cancellationToken = default)
         {
             var keyBin = sharedMemorySerializer.Serialize(key);
+            var keyLength = keyBin.Length;
             var messageBin = sharedMemorySerializer.Serialize(message);
-            var messageAndLengthBin = BitConverter.GetBytes((int)messageBin.Length).Concat(messageBin).ToArray();
-            var messageAndLengthHash = Crc32.Hash(messageAndLengthBin);
-            var sendbody = messageAndLengthHash.Concat(messageAndLengthBin).ToArray();
+            var keyLengthAndKeyAndMsgLengthAndMsgBin = BitConverter.GetBytes(keyLength)
+                                                        .Concat(keyBin)
+                                                        .Concat(BitConverter.GetBytes(messageBin.Length))
+                                                        .Concat(messageBin)
+                                                        .ToArray();
+            var messageAndLengthHash = Crc32.Hash(keyLengthAndKeyAndMsgLengthAndMsgBin);
+            var sendbody = messageAndLengthHash.Concat(keyLengthAndKeyAndMsgLengthAndMsgBin).ToArray();
 
-            using (var theServer = new CircularBuffer(UTF8Encoding.UTF8.GetString(keyBin), messagePipeSharedMemoryOptions.PublishNodeCount, sizeof(byte) * sendbody.Length))
-            {
-                theServer.Write(sendbody, messagePipeSharedMemoryOptions.PublishTimeOutMs);
-            }
-
+            circularBuffer.InsertNewData(sendbody);
         }
     }
 

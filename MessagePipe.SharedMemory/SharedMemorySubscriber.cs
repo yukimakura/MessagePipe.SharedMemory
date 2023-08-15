@@ -1,10 +1,11 @@
 using System.IO.Hashing;
 using System.Threading;
 using System.Threading.Tasks;
-using SharedMemory;
 using System.Linq;
 using System;
 using System.Text;
+using MessagePipe.SharedMemory.InternalClasses.Interfaces;
+using DeepEqual.Syntax;
 
 namespace MessagePipe.SharedMemory
 {
@@ -15,83 +16,95 @@ namespace MessagePipe.SharedMemory
         private readonly FilterAttachedMessageHandlerFactory messageHandlerFactory;
         private readonly MessagePipeSharedMemoryOptions messagePipeSharedMemoryOptions;
         private readonly ISharedMemorySerializer sharedMemorySerializer;
+        private readonly ICircularBuffer circularBuffer;
+
 
         public SharedMemorySubscriber(FilterAttachedAsyncMessageHandlerFactory asyncMessageHandlerFactory,
             FilterAttachedMessageHandlerFactory messageHandlerFactory,
             MessagePipeSharedMemoryOptions messagePipeSharedMemoryOptions,
-            ISharedMemorySerializer sharedMemorySerializer)
+            ISharedMemorySerializer sharedMemorySerializer,
+            ICircularBuffer circularBuffer
+            )
         {
             this.asyncMessageHandlerFactory = asyncMessageHandlerFactory;
             this.messageHandlerFactory = messageHandlerFactory;
             this.messagePipeSharedMemoryOptions = messagePipeSharedMemoryOptions;
             this.sharedMemorySerializer = sharedMemorySerializer;
+            this.circularBuffer = circularBuffer;
         }
 
         public async ValueTask<IAsyncDisposable> SubscribeAsync(TKey key, IMessageHandler<TMessage> handler, CancellationToken cancellationToken = default)
             => await SubscribeAsync(key, handler, Array.Empty<MessageHandlerFilter<TMessage>>(), cancellationToken);
-        
+
         public async ValueTask<IAsyncDisposable> SubscribeAsync(TKey key, IMessageHandler<TMessage> handler, MessageHandlerFilter<TMessage>[] filters, CancellationToken cancellationToken = default)
-            => await subscribeAsyncBase(key,() => messageHandlerFactory.CreateMessageHandler(handler, filters));
+            => await subscribeAsyncBase(key, () => messageHandlerFactory.CreateMessageHandler(handler, filters));
 
         public async ValueTask<IAsyncDisposable> SubscribeAsync(TKey key, IAsyncMessageHandler<TMessage> handler, CancellationToken cancellationToken = default)
             => await SubscribeAsync(key, handler, Array.Empty<AsyncMessageHandlerFilter<TMessage>>(), cancellationToken);
 
         public async ValueTask<IAsyncDisposable> SubscribeAsync(TKey key, IAsyncMessageHandler<TMessage> handler, AsyncMessageHandlerFilter<TMessage>[] filters, CancellationToken cancellationToken = default)
-            => await subscribeAsyncBase(key,() => asyncMessageHandlerFactory.CreateAsyncMessageHandler(handler, filters),cancellationToken);
+            => await subscribeAsyncBase(key, () => asyncMessageHandlerFactory.CreateAsyncMessageHandler(handler, filters), cancellationToken);
 
         private async ValueTask<IAsyncDisposable> subscribeAsyncBase<MESSGAGEHANDLERTYPE>(TKey key, Func<MESSGAGEHANDLERTYPE> messagehandlerInjector, CancellationToken cancellationToken = default)
         {
+            var latestTick = DateTime.Now.Ticks;
             var handler = messagehandlerInjector();
             var keyBin = sharedMemorySerializer.Serialize(key);
-            var theClient = new CircularBuffer(UTF8Encoding.UTF8.GetString(keyBin));
             var cancelTokenSrcFormDisposable = new CancellationTokenSource();
-            if(cancellationToken != null)
+            if (cancellationToken != null)
                 cancellationToken.Register(() => cancelTokenSrcFormDisposable.Cancel());
-
-            var buffer = new byte[theClient.NodeBufferSize];
-            var latestHash = new byte[4];
 
             while (!cancelTokenSrcFormDisposable.IsCancellationRequested)
             {
-                theClient.Read(buffer, messagePipeSharedMemoryOptions.SubscribeTimeOutMs);
-                byte[] currentHash = getHash(buffer);
                 try
                 {
-                    if (currentHash != latestHash)
+                    var tickAndBody = circularBuffer.GetBodyAfterTick(latestTick);
+                    foreach (var (tick, body) in tickAndBody)
                     {
-                        if (tryDeserialize<TMessage>(buffer, out var deserializedData))
+                        byte[] currentHash = getHash(body);
+                        if (tryDeserialize<TKey, TMessage>(body, out var deserializedKey, out var deserializedData))
                         {
-                            switch (handler)
+                            //Keyと一致するメッセージのみをコールバックさせる
+                            if (key.IsDeepEqual(deserializedKey))
                             {
-                                case IAsyncMessageHandler<TMessage> asynchandler:
-                                    await asynchandler.HandleAsync(deserializedData, CancellationToken.None).ConfigureAwait(false);
-                                    break;
-                                case IMessageHandler<TMessage> synchandler:
-                                    synchandler.Handle(deserializedData);
-                                    break;
+                                switch (handler)
+                                {
+                                    case IAsyncMessageHandler<TMessage> asynchandler:
+                                        await asynchandler.HandleAsync(deserializedData, CancellationToken.None).ConfigureAwait(false);
+                                        break;
+                                    case IMessageHandler<TMessage> synchandler:
+                                        synchandler.Handle(deserializedData);
+                                        break;
+                                }
                             }
                         }
+                        latestTick = tick;
                     }
                 }
                 finally
                 {
-                    latestHash = currentHash;
                     await Task.Delay(messagePipeSharedMemoryOptions.SharedMemoryPoolingIntervalTimeMs);
                 }
             }
 
-            return new subscription(theClient,cancelTokenSrcFormDisposable);
+            return new subscription(circularBuffer, cancelTokenSrcFormDisposable);
         }
-        private bool tryDeserialize<TYPE>(Span<byte> rawData, out TYPE deserializedData)
+        private bool tryDeserialize<KEYTYPE, DATATYPE>(Span<byte> rawData, out KEYTYPE key, out DATATYPE deserializedData)
         {
             if (!checkHash(rawData))
             {
                 deserializedData = default;
+                key = default;
                 return false;
             }
-
-            var length = BitConverter.ToInt32(rawData[4..8]);
-            deserializedData = sharedMemorySerializer.Deserialize<TYPE>(rawData[8..length].ToArray());
+            var baseIndex = 0;
+            var keyLength = BitConverter.ToInt32(rawData[4..8]);
+            baseIndex = 8;
+            key = sharedMemorySerializer.Deserialize<KEYTYPE>(rawData[baseIndex..(baseIndex + keyLength)].ToArray());
+            baseIndex = baseIndex + keyLength;
+            var msgLength = BitConverter.ToInt32(rawData[baseIndex..(baseIndex + 4)]);
+            baseIndex = baseIndex + 4;
+            deserializedData = sharedMemorySerializer.Deserialize<DATATYPE>(rawData[baseIndex..(baseIndex + msgLength)].ToArray());
             return true;
         }
 
@@ -107,10 +120,10 @@ namespace MessagePipe.SharedMemory
 
         private sealed class subscription : IAsyncDisposable
         {
-            private readonly CircularBuffer circularBuffer;
+            private readonly ICircularBuffer circularBuffer;
             private readonly CancellationTokenSource cancellationTokenSource;
 
-            public subscription(CircularBuffer circularBuffer, CancellationTokenSource cancellationTokenSource)
+            public subscription(ICircularBuffer circularBuffer, CancellationTokenSource cancellationTokenSource)
             {
                 this.circularBuffer = circularBuffer;
                 this.cancellationTokenSource = cancellationTokenSource;

@@ -25,7 +25,7 @@ namespace MessagePipe.SharedMemory.InternalClasses.Interfaces
         /// mappedFileに何も情報がない場合はNullを返す
         /// </summary>
         /// <returns></returns>
-        long? GetLatestTick();
+        long? GetLatestTickOrNull();
 
 
     }

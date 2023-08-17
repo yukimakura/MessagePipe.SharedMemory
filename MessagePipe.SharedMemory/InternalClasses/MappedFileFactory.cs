@@ -1,19 +1,22 @@
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
-using Namespace.Interfaces;
-namespace Namespace;
-public class MappedFileFactory
+using MessagePipe.SharedMemory.InternalClasses.Interfaces;
+namespace MessagePipe.SharedMemory.InternalClasses
 {
-    public MemoryMappedFile Create(QueueOptions options)
+
+    public class MappedFileFactory
     {
-        IMappedFile mappedFileGenerator = default(IMappedFile);
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            mappedFileGenerator = new MappedFileWindows(options);
-        else
-            mappedFileGenerator = new MappedFileUnix(options);
+        public MemoryMappedFile Create(QueueOptions options)
+        {
+            IMappedFile mappedFileGenerator = default(IMappedFile);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                mappedFileGenerator = new MappedFileWindows(options);
+            else
+                mappedFileGenerator = new MappedFileUnix(options);
 
-        return mappedFileGenerator.MappedFile;
+            return mappedFileGenerator.MappedFile;
+        }
+
     }
-
 }
 

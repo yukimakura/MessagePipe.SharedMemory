@@ -1,7 +1,9 @@
 using System.Runtime.InteropServices;
 
-namespace Namespace;
-[StructLayout(LayoutKind.Explicit, Size = 32)]
+namespace MessagePipe.SharedMemory.InternalClasses
+{
+
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     internal struct QueueHeader
     {
         /// <summary>
@@ -31,3 +33,4 @@ namespace Namespace;
         internal bool IsEmpty()
             => ReadOffset == WriteOffset;
     }
+}

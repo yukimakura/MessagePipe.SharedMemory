@@ -10,8 +10,8 @@ using MessagePipe.SharedMemory.InternalClasses.Interfaces;
 namespace MessagePipe.SharedMemory.InternalClasses
 {
     /// <summary>
-    /// MemoryMappedFile‚É‚ÄzŠÂƒoƒbƒtƒ@‹@”\‚ğ’ñ‹Ÿ‚·‚é
-    /// 1ƒtƒŒ[ƒ€‚ÌƒŒƒCƒAƒEƒg
+    /// MemoryMappedFileã«ã¦å¾ªç’°ãƒãƒƒãƒ•ã‚¡æ©Ÿèƒ½ã‚’æä¾›ã™ã‚‹
+    /// 1ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
     /// | tick 8byte | before tick index 4byte | body size 4byte | body |
     /// </summary>
     public class CircularBuffer : ICircularBuffer
@@ -30,30 +30,30 @@ namespace MessagePipe.SharedMemory.InternalClasses
 
         public void Dispose()
         {
-            //memoryMappedFile‚Í‚±‚±‚ÅDispose‚µ‚È‚¢
-            //(DI‚³‚ê‚Ä‚¢‚é‚±‚Æ‚©‚çA‘¼‚Ö‚Ì‰e‹¿‚ğl—¶‚µ‚Ä‚¢‚é)
+            //memoryMappedFileã¯ã“ã“ã§Disposeã—ãªã„
+            //(DIã•ã‚Œã¦ã„ã‚‹ã“ã¨ã‹ã‚‰ã€ä»–ã¸ã®å½±éŸ¿ã‚’è€ƒæ…®ã—ã¦ã„ã‚‹)
         }
 
         /// <summary>
-        /// w’è‚µ‚½Tick‚æ‚èV‚µ‚¢ƒf[ƒ^‚ÌƒŠƒXƒg‚ğ•Ô‚·
+        /// æŒ‡å®šã—ãŸTickã‚ˆã‚Šæ–°ã—ã„ãƒ‡ãƒ¼ã‚¿ã®ãƒªã‚¹ãƒˆã‚’è¿”ã™
         /// </summary>
-        /// <param name="tick">w’è‚·‚éTick</param>
-        /// <returns>w’è‚µ‚½Tick‚æ‚èV‚µ‚¢ƒf[ƒ^‚ÌƒŠƒXƒg</returns>
+        /// <param name="tick">æŒ‡å®šã™ã‚‹Tick</param>
+        /// <returns>æŒ‡å®šã—ãŸTickã‚ˆã‚Šæ–°ã—ã„ãƒ‡ãƒ¼ã‚¿ã®ãƒªã‚¹ãƒˆ</returns>
         public IEnumerable<(long tick, byte[] body)> GetBodyAfterTick(long tick)
             => getAllBodyAndTick().OrderBy(x => x.tick).Where(x => x.tick > tick).ToList();
 
         /// <summary>
-        /// ÅV‚ÌTick‚ğzŠÂƒoƒbƒtƒ@‚©‚çæ“¾‚·‚é
-        /// ÅV‚ÌTick‚ª‚È‚¢(zŠÂƒoƒbƒtƒ@‚ª‹ó)‚Ì‚Æ‚«‚ÍNull‚ğ•Ô‚·
+        /// æœ€æ–°ã®Tickã‚’å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã‹ã‚‰å–å¾—ã™ã‚‹
+        /// æœ€æ–°ã®TickãŒãªã„(å¾ªç’°ãƒãƒƒãƒ•ã‚¡ãŒç©º)ã®ã¨ãã¯Nullã‚’è¿”ã™
         /// </summary>
-        /// <returns>ÅV‚ÌTick(‚È‚¢ê‡‚ÍNull)</returns>
+        /// <returns>æœ€æ–°ã®Tick(ãªã„å ´åˆã¯Null)</returns>
         public long? GetLatestTickOrNull()
         {
             var latestTickIndex = getLatestTickIndex(memoryMappedFile, bufferSize);
             var latestFrameRaw = takeOneFrameFromBuffer(memoryMappedFile, latestTickIndex, bufferSize);
 
             var latestFrame = deserializeFrame(latestFrameRaw);
-            //body‚ª0 ¨ 1‚Â‚àƒoƒbƒtƒ@‚Éƒf[ƒ^‚ª‘¶İ‚µ‚È‚¢‚Æ‚·‚é(‚·‚×‚Ä‚Ìbyte‚ª0‚Æ‰¼’è)
+            //bodyãŒ0 â†’ 1ã¤ã‚‚ãƒãƒƒãƒ•ã‚¡ã«ãƒ‡ãƒ¼ã‚¿ãŒå­˜åœ¨ã—ãªã„ã¨ã™ã‚‹(ã™ã¹ã¦ã®byteãŒ0ã¨ä»®å®š)
             if (latestFrame.bodyLength == 0)
                 return null;
 
@@ -61,7 +61,7 @@ namespace MessagePipe.SharedMemory.InternalClasses
         }
 
         /// <summary>
-        /// V‚µ‚¢ƒf[ƒ^‚ğzŠÂƒoƒbƒtƒ@‚É‘}“ü‚·‚é
+        /// æ–°ã—ã„ãƒ‡ãƒ¼ã‚¿ã‚’å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«æŒ¿å…¥ã™ã‚‹
         /// </summary>
         /// <param name="data"></param>
         public void InsertNewData(byte[] data)
@@ -70,26 +70,26 @@ namespace MessagePipe.SharedMemory.InternalClasses
             putLatestTickIndex(memoryMappedFile,startIndex,bufferSize);
         }
         /// <summary>
-        /// zŠÂƒoƒbƒtƒ@‚©‚çÅV‚Ì1ƒtƒŒ[ƒ€•ª‚Ìƒf[ƒ^‚ğæ“¾‚·‚é
-        /// zŠÂƒoƒbƒtƒ@‚ª‹ó‚Ìê‡‚ÍNull‚ğ•Ô‚·
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã‹ã‚‰æœ€æ–°ã®1ãƒ•ãƒ¬ãƒ¼ãƒ åˆ†ã®ãƒ‡ãƒ¼ã‚¿ã‚’å–å¾—ã™ã‚‹
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ãŒç©ºã®å ´åˆã¯Nullã‚’è¿”ã™
         /// </summary>
-        /// <returns>ÅV‚Ì1ƒtƒŒ[ƒ€•ª‚Ìƒf[ƒ^(‚È‚¢ê‡‚ÍNull)</returns>
+        /// <returns>æœ€æ–°ã®1ãƒ•ãƒ¬ãƒ¼ãƒ åˆ†ã®ãƒ‡ãƒ¼ã‚¿(ãªã„å ´åˆã¯Null)</returns>
         private (int frameLength, int tickIndex, long tick, byte[] body)? getLatestFrameDataOrNull()
         {
             var latestTickIndex = getLatestTickIndex(memoryMappedFile, bufferSize);
             var latestFrameRaw = takeOneFrameFromBuffer(memoryMappedFile, latestTickIndex, bufferSize);
 
             var latestFrame = deserializeFrame(latestFrameRaw);
-            //body‚ª0 ¨ 1‚Â‚àƒoƒbƒtƒ@‚Éƒf[ƒ^‚ª‘¶İ‚µ‚È‚¢‚Æ‚·‚é(‚·‚×‚Ä‚Ìbyte‚ª0‚Æ‰¼’è)
+            //bodyãŒ0 â†’ 1ã¤ã‚‚ãƒãƒƒãƒ•ã‚¡ã«ãƒ‡ãƒ¼ã‚¿ãŒå­˜åœ¨ã—ãªã„ã¨ã™ã‚‹(ã™ã¹ã¦ã®byteãŒ0ã¨ä»®å®š)
             if (latestFrame.bodyLength == 0)
                 return null;
 
             return (latestFrame.bodyLength + headerSize, latestTickIndex, latestFrame.tick, latestFrame.body);
         }
         /// <summary>
-        /// zŠÂƒoƒbƒtƒ@‚É‘¶İ‚·‚é‚·‚×‚Ä‚ÌƒtƒŒ[ƒ€‚ÌƒŠƒXƒg‚ğ•Ô‚·
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«å­˜åœ¨ã™ã‚‹ã™ã¹ã¦ã®ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒªã‚¹ãƒˆã‚’è¿”ã™
         /// </summary>
-        /// <returns>zŠÂƒoƒbƒtƒ@‚É‘¶İ‚·‚é‚·‚×‚Ä‚ÌƒtƒŒ[ƒ€‚ÌƒŠƒXƒg</returns>
+        /// <returns>å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«å­˜åœ¨ã™ã‚‹ã™ã¹ã¦ã®ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒªã‚¹ãƒˆ</returns>
         private IEnumerable<(long tick, byte[] body)> getAllBodyAndTick()
         {
             var retData = new List<(long tick, byte[] body)>();
@@ -98,13 +98,13 @@ namespace MessagePipe.SharedMemory.InternalClasses
             var latestFrameRaw = takeOneFrameFromBuffer(memoryMappedFile, latestTickIndex, bufferSize);
 
             var latestFrame = deserializeFrame(latestFrameRaw);
-            //body‚ª0 ¨ 1‚Â‚àƒoƒbƒtƒ@‚Éƒf[ƒ^‚ª‘¶İ‚µ‚È‚¢‚Æ‚·‚é(‚·‚×‚Ä‚Ìbyte‚ª0‚Æ‰¼’è)
+            //bodyãŒ0 â†’ 1ã¤ã‚‚ãƒãƒƒãƒ•ã‚¡ã«ãƒ‡ãƒ¼ã‚¿ãŒå­˜åœ¨ã—ãªã„ã¨ã™ã‚‹(ã™ã¹ã¦ã®byteãŒ0ã¨ä»®å®š)
             if (latestFrame.bodyLength == 0)
                 return new List<(long tick, byte[] body)>();
 
             retData.Add((latestFrame.tick, latestFrame.body));
 
-            //latestTickIndex‚Æ‘O‚ÌTick‚ÌIndex‚ª0‚Ìê‡‚Íƒoƒbƒtƒ@‚É1‚Â‚µ‚©ƒf[ƒ^‚ª‚È‚¢‚Æ‚·‚é
+            //latestTickIndexã¨å‰ã®Tickã®IndexãŒ0ã®å ´åˆã¯ãƒãƒƒãƒ•ã‚¡ã«1ã¤ã—ã‹ãƒ‡ãƒ¼ã‚¿ãŒãªã„ã¨ã™ã‚‹
             if (latestTickIndex == 0 && latestFrame.beforeTickIndex == 0)
                 return retData;
 
@@ -114,7 +114,7 @@ namespace MessagePipe.SharedMemory.InternalClasses
                 var frameRaw = takeOneFrameFromBuffer(memoryMappedFile, beforeTickIndex, bufferSize);
                 var frame = deserializeFrame(frameRaw);
 
-                //ƒoƒbƒtƒ@‚ğˆêü‚µ‚½‚±‚Æ‚ğl—¶‚·‚é¨Tick‚ªˆê’v‚µ‚½‚çBreak‚·‚ê‚Î—Ç‚¢
+                //ãƒãƒƒãƒ•ã‚¡ã‚’ä¸€å‘¨ã—ãŸã“ã¨ã‚’è€ƒæ…®ã™ã‚‹â†’TickãŒä¸€è‡´ã—ãŸã‚‰Breakã™ã‚Œã°è‰¯ã„
                 if (retData.Any(x => x.tick == frame.tick))
                     break;
 
@@ -126,53 +126,53 @@ namespace MessagePipe.SharedMemory.InternalClasses
         }
 
         /// <summary>
-        /// ƒtƒŒ[ƒ€‚Ìƒwƒbƒ_•”•ª‚ğì¬‚µAzŠÂƒoƒbƒtƒ@‚É‚»‚ê‚ğ‘}“ü‚·‚é
-        /// •Ô‚è’l‚ÉV‹K‘}“üƒf[ƒ^‚Ì”z—ñ‚Ìæ“ªƒCƒ“ƒfƒbƒNƒX‚ª•Ô‚é
+        /// ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒ˜ãƒƒãƒ€éƒ¨åˆ†ã‚’ä½œæˆã—ã€å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«ãã‚Œã‚’æŒ¿å…¥ã™ã‚‹
+        /// è¿”ã‚Šå€¤ã«æ–°è¦æŒ¿å…¥ãƒ‡ãƒ¼ã‚¿ã®é…åˆ—ã®å…ˆé ­ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãŒè¿”ã‚‹
         /// </summary>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="bodyData">‘}“ü‚·‚éƒf[ƒ^–{‘Ì(ƒwƒbƒ_‚Í•s—v)</param>
-        /// <param name="bufferSize">MemoryMappedFile‚Ìƒoƒbƒtƒ@ƒTƒCƒY</param>
-        /// <returns>V‹K‘}“üƒf[ƒ^‚Ì”z—ñ‚Ìæ“ªƒCƒ“ƒfƒbƒNƒX</returns>
+        /// <param name="bodyData">æŒ¿å…¥ã™ã‚‹ãƒ‡ãƒ¼ã‚¿æœ¬ä½“(ãƒ˜ãƒƒãƒ€ã¯ä¸è¦)</param>
+        /// <param name="bufferSize">MemoryMappedFileã®ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚º</param>
+        /// <returns>æ–°è¦æŒ¿å…¥ãƒ‡ãƒ¼ã‚¿ã®é…åˆ—ã®å…ˆé ­ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹</returns>
         private int makeHeaderAndPutBuffer(MemoryMappedFile mmf, byte[] bodyData, int bufferSize)
         {
             var tick = DateTime.Now.Ticks;
             var bodyLength = bodyData.Length;
             var latestFrame = getLatestFrameDataOrNull();
             var startIndex = 0;
-            //ƒoƒbƒtƒ@‚Éƒf[ƒ^‚ªˆê‚Â‚à‘¶İ‚µ‚È‚¢ê‡
+            //ãƒãƒƒãƒ•ã‚¡ã«ãƒ‡ãƒ¼ã‚¿ãŒä¸€ã¤ã‚‚å­˜åœ¨ã—ãªã„å ´åˆ
             if (latestFrame != null)
                 startIndex = latestFrame.Value.tickIndex + latestFrame.Value.frameLength + 1;
 
-            putBuffer(mmf, serializeFrame(tick, latestFrame.Value.tickIndex, bodyLength, bodyData), startIndex, bufferSize);
+            putBuffer(mmf, serializeFrame(tick, startIndex, bodyLength, bodyData), startIndex, bufferSize);
 
             return startIndex;
         }
 
         /// <summary>
-        /// zŠÂƒoƒbƒtƒ@‚Éƒf[ƒ^‚ğ‘}“ü‚·‚é
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«ãƒ‡ãƒ¼ã‚¿ã‚’æŒ¿å…¥ã™ã‚‹
         /// </summary>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="putData">‘}“ü‚µ‚½‚¢ƒoƒCƒg—ñ</param>
-        /// <param name="startIndex">zŠÂƒoƒbƒtƒ@‚Éİ’u‚·‚éÛ‚Ìæ“ªƒCƒ“ƒfƒbƒNƒX</param>
-        /// <param name="bufferSize">MemoryMappedFile‚Ìƒoƒbƒtƒ@ƒTƒCƒY</param>
-        /// <exception cref="OverflowException">bufferSizeˆÈã‚Ìƒf[ƒ^‚ª‘}“ü‚³‚ê‚½‚Æ‚«</exception>
+        /// <param name="putData">æŒ¿å…¥ã—ãŸã„ãƒã‚¤ãƒˆåˆ—</param>
+        /// <param name="startIndex">å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«è¨­ç½®ã™ã‚‹éš›ã®å…ˆé ­ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹</param>
+        /// <param name="bufferSize">MemoryMappedFileã®ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚º</param>
+        /// <exception cref="OverflowException">bufferSizeä»¥ä¸Šã®ãƒ‡ãƒ¼ã‚¿ãŒæŒ¿å…¥ã•ã‚ŒãŸã¨ã</exception>
         private void putBuffer(MemoryMappedFile mmf, byte[] putData, int startIndex, int bufferSize)
         {
-            //bufferSize-4‚ÍÅŒã‚Ì4byte‚ÉÅV‚Ìtick‚ªŠi”[‚³‚ê‚Ä‚¢‚éƒCƒ“ƒfƒbƒNƒX‚ªŠi”[‚³‚ê‚Ä‚¢‚é‚½‚ß
+            //bufferSize-4ã¯æœ€å¾Œã®4byteã«æœ€æ–°ã®tickãŒæ ¼ç´ã•ã‚Œã¦ã„ã‚‹ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãŒæ ¼ç´ã•ã‚Œã¦ã„ã‚‹ãŸã‚
             var maxEndIndex = bufferSize - 4;
 
             var length = putData.Length;
 
-            //buffer‚©‚çˆì‚ê‚½’·‚³
+            //bufferã‹ã‚‰æº¢ã‚ŒãŸé•·ã•
             var overflowLength = (startIndex + length) - maxEndIndex;
 
-            //ˆì‚ê‚½ƒoƒCƒg”‚ªƒoƒbƒtƒ@[ƒTƒCƒY‚æ‚è‚à‘å‚«‚¢ê‡‚ÍException
+            //æº¢ã‚ŒãŸãƒã‚¤ãƒˆæ•°ãŒãƒãƒƒãƒ•ã‚¡ãƒ¼ã‚µã‚¤ã‚ºã‚ˆã‚Šã‚‚å¤§ãã„å ´åˆã¯Exception
             if (overflowLength >= maxEndIndex)
                 throw new OverflowException("Data greater than the buffer size was specified. Either the buffer size must be increased or the data must be reduced.");
 
-            //overflowLength‚ª0ˆÈã‚È‚ç“ªo‚µ‚µ‚Ä‚»‚±‚©‚ç‚Ìƒf[ƒ^‚ğŒ‹‡‚·‚é
+            //overflowLengthãŒ0ä»¥ä¸Šãªã‚‰é ­å‡ºã—ã—ã¦ãã“ã‹ã‚‰ã®ãƒ‡ãƒ¼ã‚¿ã‚’çµåˆã™ã‚‹
             if (overflowLength > 0)
-                //zŠÂƒoƒbƒtƒ@‚É‚æ‚éˆì‚êˆ—
+                //å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«ã‚ˆã‚‹æº¢ã‚Œå‡¦ç†
                 memoryMappedFileWrapper(mmf, accessor =>
                 {
                     var beforeLength = length - overflowLength;
@@ -188,13 +188,13 @@ namespace MessagePipe.SharedMemory.InternalClasses
 
         }
         /// <summary>
-        /// zŠÂƒoƒbƒtƒ@‚©‚ç1ƒtƒŒ[ƒ€•ª‚ÌByte—ñ‚ğæ“¾‚·‚é
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã‹ã‚‰1ãƒ•ãƒ¬ãƒ¼ãƒ åˆ†ã®Byteåˆ—ã‚’å–å¾—ã™ã‚‹
         /// </summary>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="startIndex">“Ç‚İæ‚è‚½‚¢ƒtƒŒ[ƒ€‚Ìæ“ªƒCƒ“ƒfƒbƒNƒX</param>
-        /// <param name="bufferSize">MemoryMappedFile‚Ìƒoƒbƒtƒ@ƒTƒCƒY</param>
-        /// <returns>1ƒtƒŒ[ƒ€•ª‚ÌByte—ñ</returns>
-        /// <exception cref="OverflowException">bufferSizeˆÈã‚Ìƒf[ƒ^‚ª‘}“ü‚³‚ê‚½‚Æ‚«</exception>
+        /// <param name="startIndex">èª­ã¿å–ã‚ŠãŸã„ãƒ•ãƒ¬ãƒ¼ãƒ ã®å…ˆé ­ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹</param>
+        /// <param name="bufferSize">MemoryMappedFileã®ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚º</param>
+        /// <returns>1ãƒ•ãƒ¬ãƒ¼ãƒ åˆ†ã®Byteåˆ—</returns>
+        /// <exception cref="OverflowException">bufferSizeä»¥ä¸Šã®ãƒ‡ãƒ¼ã‚¿ãŒæŒ¿å…¥ã•ã‚ŒãŸã¨ã</exception>
         private byte[] takeOneFrameFromBuffer(MemoryMappedFile mmf, int startIndex, int bufferSize)
         {
             return memoryMappedFileWrapper(mmf, accessor =>
@@ -202,35 +202,35 @@ namespace MessagePipe.SharedMemory.InternalClasses
                 var rawbuffer = new byte[bufferSize];
                 accessor.ReadArray(0, rawbuffer, 0, bufferSize);
 
-                //bufferSize-4‚ÍÅŒã‚Ì4byte‚ÉÅV‚Ìtick‚ªŠi”[‚³‚ê‚Ä‚¢‚éƒCƒ“ƒfƒbƒNƒX‚ªŠi”[‚³‚ê‚Ä‚¢‚é‚½‚ß
+                //bufferSize-4ã¯æœ€å¾Œã®4byteã«æœ€æ–°ã®tickãŒæ ¼ç´ã•ã‚Œã¦ã„ã‚‹ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãŒæ ¼ç´ã•ã‚Œã¦ã„ã‚‹ãŸã‚
                 var maxEndIndex = bufferSize - 4;
 
                 var headerData = new byte[headerSize];
-                //1ƒtƒŒ[ƒ€‚ ‚½‚è‚Ìƒf[ƒ^’·‚ğ‹‚ß‚é
-                //ƒwƒbƒ_[‚ğ‰ğÍ
-                //ƒwƒbƒ_[‚ªzŠÂƒoƒbƒtƒ@‚É‚Ä•ªŠ„‚³‚ê‚½ê‡
+                //1ãƒ•ãƒ¬ãƒ¼ãƒ ã‚ãŸã‚Šã®ãƒ‡ãƒ¼ã‚¿é•·ã‚’æ±‚ã‚ã‚‹
+                //ãƒ˜ãƒƒãƒ€ãƒ¼ã‚’è§£æ
+                //ãƒ˜ãƒƒãƒ€ãƒ¼ãŒå¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«ã¦åˆ†å‰²ã•ã‚ŒãŸå ´åˆ
                 if ((startIndex + headerSize) > maxEndIndex)
                 {
                     var overflowHeaderLength = (startIndex + headerSize) - maxEndIndex;
                     headerData = rawbuffer[startIndex..(headerSize - overflowHeaderLength)].ToArray()
                                             .Concat(rawbuffer[..overflowHeaderLength]).ToArray();
                 }
-                //zŠÂƒoƒbƒtƒ@‚É‚Ä•ªŠ„‚³‚ê‚È‚¢ê‡
+                //å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«ã¦åˆ†å‰²ã•ã‚Œãªã„å ´åˆ
                 else
                     headerData = rawbuffer[startIndex..(startIndex + headerSize)];
 
                 var length = BitConverter.ToInt32(headerData[12..16]) + headerSize;
 
-                //buffer‚©‚çˆì‚ê‚½’·‚³
+                //bufferã‹ã‚‰æº¢ã‚ŒãŸé•·ã•
                 var overflowLength = (startIndex + length) - maxEndIndex;
 
-                //ˆì‚ê‚½ƒoƒCƒg”‚ªƒoƒbƒtƒ@[ƒTƒCƒY‚æ‚è‚à‘å‚«‚¢ê‡‚ÍException
+                //æº¢ã‚ŒãŸãƒã‚¤ãƒˆæ•°ãŒãƒãƒƒãƒ•ã‚¡ãƒ¼ã‚µã‚¤ã‚ºã‚ˆã‚Šã‚‚å¤§ãã„å ´åˆã¯Exception
                 if (overflowLength >= maxEndIndex)
                     throw new OverflowException("Data greater than the buffer size was specified. Either the buffer size must be increased or the data must be reduced.");
 
-                //overflowLength‚ª0ˆÈã‚È‚ç“ªo‚µ‚µ‚Ä‚»‚±‚©‚ç‚Ìƒf[ƒ^‚ğŒ‹‡‚·‚é
+                //overflowLengthãŒ0ä»¥ä¸Šãªã‚‰é ­å‡ºã—ã—ã¦ãã“ã‹ã‚‰ã®ãƒ‡ãƒ¼ã‚¿ã‚’çµåˆã™ã‚‹
                 if (overflowLength > 0)
-                    //zŠÂƒoƒbƒtƒ@‚É‚æ‚éˆì‚êˆ—
+                    //å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«ã‚ˆã‚‹æº¢ã‚Œå‡¦ç†
                     return rawbuffer[startIndex..maxEndIndex].ToArray().Concat(rawbuffer[..overflowLength].ToArray()).ToArray();
                 else
                     return rawbuffer[startIndex..(startIndex + length)].ToArray();
@@ -239,31 +239,31 @@ namespace MessagePipe.SharedMemory.InternalClasses
         }
 
         /// <summary>
-        /// 1ƒtƒŒ[ƒ€•ª‚ÌƒoƒCƒg—ñ‚©‚çƒfƒVƒŠƒAƒ‰ƒCƒY‚·‚é
+        /// 1ãƒ•ãƒ¬ãƒ¼ãƒ åˆ†ã®ãƒã‚¤ãƒˆåˆ—ã‹ã‚‰ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºã™ã‚‹
         /// </summary>
-        /// <param name="rawBytes">ƒfƒVƒŠƒAƒ‰ƒCƒY‚·‚é¶Byte—ñ</param>
-        /// <returns>ƒfƒVƒŠƒAƒ‰ƒCƒY‚³‚ê‚½ƒf[ƒ^</returns>
+        /// <param name="rawBytes">ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºã™ã‚‹ç”ŸByteåˆ—</param>
+        /// <returns>ãƒ‡ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºã•ã‚ŒãŸãƒ‡ãƒ¼ã‚¿</returns>
         private (long tick, int beforeTickIndex, int bodyLength, byte[] body) deserializeFrame(ReadOnlySpan<byte> rawBytes)
             => (BitConverter.ToInt64(rawBytes[..8]), BitConverter.ToInt32(rawBytes[8..12]), BitConverter.ToInt32(rawBytes[12..16]), rawBytes[16..].ToArray());
 
         /// <summary>
-        /// 1ƒtƒŒ[ƒ€•ª‚Ìƒf[ƒ^‚ğbyte—ñ‚ÉƒVƒŠƒAƒ‰ƒCƒY‚·‚é
+        /// 1ãƒ•ãƒ¬ãƒ¼ãƒ åˆ†ã®ãƒ‡ãƒ¼ã‚¿ã‚’byteåˆ—ã«ã‚·ãƒªã‚¢ãƒ©ã‚¤ã‚ºã™ã‚‹
         /// </summary>
         /// <param name="tick">Tick</param>
-        /// <param name="beforeTickIndex">‘O‚Ìƒf[ƒ^‚ÌƒoƒCƒg—ñ</param>
-        /// <param name="bodyLength">body‚Ì’·‚³</param>
-        /// <param name="body">ƒf[ƒ^–{‘Ì</param>
-        /// <returns>¶Byte—ñ</returns>
+        /// <param name="beforeTickIndex">å‰ã®ãƒ‡ãƒ¼ã‚¿ã®ãƒã‚¤ãƒˆåˆ—</param>
+        /// <param name="bodyLength">bodyã®é•·ã•</param>
+        /// <param name="body">ãƒ‡ãƒ¼ã‚¿æœ¬ä½“</param>
+        /// <returns>ç”ŸByteåˆ—</returns>
         private byte[] serializeFrame(long tick, int beforeTickIndex, int bodyLength, byte[] body)
            => BitConverter.GetBytes(tick).Concat(BitConverter.GetBytes(beforeTickIndex)).Concat(BitConverter.GetBytes(bodyLength)).Concat(body).ToArray();
 
         /// <summary>
-        /// MemoryMappedFile‚ÉƒAƒNƒZƒX‚·‚é‚½‚ß‚Ìƒ‰ƒbƒp[
+        /// MemoryMappedFileã«ã‚¢ã‚¯ã‚»ã‚¹ã™ã‚‹ãŸã‚ã®ãƒ©ãƒƒãƒ‘ãƒ¼
         /// </summary>
-        /// <typeparam name="T">•Ô‚è’l‚ÌŒ^</typeparam>
+        /// <typeparam name="T">è¿”ã‚Šå€¤ã®å‹</typeparam>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="mmfAccessAction">MMF‚ÉƒAƒNƒZƒX‚·‚é”CˆÓ‚Ìˆ—</param>
-        /// <returns>MMF‚Ì”CˆÓ‚Ìˆ—‚ÌŒ‹‰Ê</returns>
+        /// <param name="mmfAccessAction">MMFã«ã‚¢ã‚¯ã‚»ã‚¹ã™ã‚‹ä»»æ„ã®å‡¦ç†</param>
+        /// <returns>MMFã®ä»»æ„ã®å‡¦ç†ã®çµæœ</returns>
         private T memoryMappedFileWrapper<T>(MemoryMappedFile mmf, Func<MemoryMappedViewAccessor, T> mmfAccessAction)
         {
             using (var accessor = mmf.CreateViewAccessor())
@@ -273,10 +273,10 @@ namespace MessagePipe.SharedMemory.InternalClasses
         }
 
         /// <summary>
-        /// MemoryMappedFile‚ÉƒAƒNƒZƒX‚·‚é‚½‚ß‚Ìƒ‰ƒbƒp[
+        /// MemoryMappedFileã«ã‚¢ã‚¯ã‚»ã‚¹ã™ã‚‹ãŸã‚ã®ãƒ©ãƒƒãƒ‘ãƒ¼
         /// </summary>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="mmfAccessAction">MMF‚ÉƒAƒNƒZƒX‚·‚é”CˆÓ‚Ìˆ—</param>
+        /// <param name="mmfAccessAction">MMFã«ã‚¢ã‚¯ã‚»ã‚¹ã™ã‚‹ä»»æ„ã®å‡¦ç†</param>
         private void memoryMappedFileWrapper(MemoryMappedFile mmf, Action<MemoryMappedViewAccessor> mmfAccessAction)
         {
             using (var accessor = mmf.CreateViewAccessor())
@@ -286,11 +286,11 @@ namespace MessagePipe.SharedMemory.InternalClasses
         }
 
         /// <summary>
-        /// zŠÂƒoƒbƒtƒ@‚©‚çÅV‚ÌTick‚ğæ“¾‚·‚é
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã‹ã‚‰æœ€æ–°ã®Tickã‚’å–å¾—ã™ã‚‹
         /// </summary>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="bufferSize">MemoryMappedFile‚Ìƒoƒbƒtƒ@ƒTƒCƒY</param>
-        /// <returns>zŠÂƒoƒbƒtƒ@‚©‚çæ“¾‚µ‚½ÅV‚ÌTick</returns>
+        /// <param name="bufferSize">MemoryMappedFileã®ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚º</param>
+        /// <returns>å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã‹ã‚‰å–å¾—ã—ãŸæœ€æ–°ã®Tick</returns>
         private int getLatestTickIndex(MemoryMappedFile mmf, int bufferSize)
             => memoryMappedFileWrapper(mmf, accessor =>
             {
@@ -301,11 +301,11 @@ namespace MessagePipe.SharedMemory.InternalClasses
             });
 
         /// <summary>
-        /// zŠÂƒoƒbƒtƒ@‚ÉÅV‚ÌTick‚ğ‘‚«‚Ş
+        /// å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã«æœ€æ–°ã®Tickã‚’æ›¸ãè¾¼ã‚€
         /// </summary>
         /// <param name="mmf">MemoryMappedFile</param>
-        /// <param name="latestTickIndex">‘‚«‚ŞÅV‚ÌTick</param>
-        /// <param name="bufferSize">zŠÂƒoƒbƒtƒ@‚©‚çÅV‚ÌTick</param>
+        /// <param name="latestTickIndex">æ›¸ãè¾¼ã‚€æœ€æ–°ã®Tick</param>
+        /// <param name="bufferSize">å¾ªç’°ãƒãƒƒãƒ•ã‚¡ã‹ã‚‰æœ€æ–°ã®Tick</param>
         private void putLatestTickIndex(MemoryMappedFile mmf, int latestTickIndex, int bufferSize)
         {
             memoryMappedFileWrapper(mmf, accessor =>

@@ -53,40 +53,41 @@ namespace MessagePipe.SharedMemory
             var cancelTokenSrcFormDisposable = new CancellationTokenSource();
             if (cancellationToken != null)
                 cancellationToken.Register(() => cancelTokenSrcFormDisposable.Cancel());
-
-            while (!cancelTokenSrcFormDisposable.IsCancellationRequested)
+            Task.Run(async() =>
             {
-                try
+                while (!cancelTokenSrcFormDisposable.IsCancellationRequested)
                 {
-                    var tickAndBody = circularBuffer.GetBodyAfterTick(latestTick);
-                    foreach (var (tick, body) in tickAndBody)
+                    try
                     {
-                        byte[] currentHash = getHash(body);
-                        if (tryDeserialize<TKey, TMessage>(body, out var deserializedKey, out var deserializedData))
+                        var tickAndBody = circularBuffer.GetBodyAfterTick(latestTick);
+                        foreach (var (tick, body) in tickAndBody)
                         {
-                            //Keyと一致するメッセージのみをコールバックさせる
-                            if (key.IsDeepEqual(deserializedKey))
+                            byte[] currentHash = getHash(body);
+                            if (tryDeserialize<TKey, TMessage>(body, out var deserializedKey, out var deserializedData))
                             {
-                                switch (handler)
+                                //Keyと一致するメッセージのみをコールバックさせる
+                                if (key.IsDeepEqual(deserializedKey))
                                 {
-                                    case IAsyncMessageHandler<TMessage> asynchandler:
-                                        await asynchandler.HandleAsync(deserializedData, CancellationToken.None).ConfigureAwait(false);
-                                        break;
-                                    case IMessageHandler<TMessage> synchandler:
-                                        synchandler.Handle(deserializedData);
-                                        break;
+                                    switch (handler)
+                                    {
+                                        case IAsyncMessageHandler<TMessage> asynchandler:
+                                            await asynchandler.HandleAsync(deserializedData, CancellationToken.None).ConfigureAwait(false);
+                                            break;
+                                        case IMessageHandler<TMessage> synchandler:
+                                            synchandler.Handle(deserializedData);
+                                            break;
+                                    }
                                 }
                             }
+                            latestTick = tick;
                         }
-                        latestTick = tick;
+                    }
+                    finally
+                    {
+                        await Task.Delay(messagePipeSharedMemoryOptions.SharedMemoryPoolingIntervalTimeMs);
                     }
                 }
-                finally
-                {
-                    await Task.Delay(messagePipeSharedMemoryOptions.SharedMemoryPoolingIntervalTimeMs);
-                }
-            }
-
+            });
             return new subscription(circularBuffer, cancelTokenSrcFormDisposable);
         }
         private bool tryDeserialize<KEYTYPE, DATATYPE>(Span<byte> rawData, out KEYTYPE key, out DATATYPE deserializedData)
